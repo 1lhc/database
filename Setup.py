@@ -9,20 +9,21 @@ def create_schema(cursor):
                 name TEXT NOT NULL,
                 pass_type TEXT NOT NULL,
                 doa TEXT NOT NULL,
-                company_uen TEXT NOT NULL
+                company_uen TEXT NOT NULL,
+                status TEXT NOT NULL
                     )
     ''')
 
 def insert_sample_data(cursor):
     # Insert sample applications
     applications = [
-        ('FIN1', 'Name1', 'PassType1', '2020-01-01', 'UEN1'),
-        ('FIN2', 'Name2', 'PassType2', '2020-02-02', 'UEN2')
+        ('FIN1', 'Name1', 'PassType1', '2020-01-01', 'UEN1','Pending'),
+        ('FIN2', 'Name2', 'PassType2', '2020-02-02', 'UEN2','Issued')
     ]
 
     cursor.executemany('''
-    INSERT INTO applications (fin, name, pass_type, doa, company_uen)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO applications (fin, name, pass_type, doa, company_uen, status)
+    VALUES (?, ?, ?, ?, ?,?)
     ''', applications)
 
 def verify_data_insertion(cursor):

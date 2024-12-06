@@ -45,6 +45,7 @@ application_count = 20  # Testing dataset
 applications_data = []
 amendments_data = []
 
+# Generate applications and amendments
 for app_index in range(1, application_count + 1):
     # Generate application details
     application_id = f"A{str(app_index).zfill(4)}"
@@ -70,6 +71,10 @@ for app_index in range(1, application_count + 1):
         amended_value = (datetime.strptime(original_value, '%Y-%m-%d') + timedelta(days=30)).strftime('%Y-%m-%d')
         amendments_data.append((amendment_id, application_id, amendment_date, original_value, amended_value))
         doe = amended_value  # Update doe after amendment
+
+    # Update the final doe in applications
+    applications_data[-1] = (*applications_data[-1][:-1], doe)  # Update in-memory
+    cursor.execute("UPDATE applications SET doe = ? WHERE id = ?", (doe, application_id))
 
 # Insert applications
 cursor.executemany('''

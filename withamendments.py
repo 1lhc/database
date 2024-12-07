@@ -31,6 +31,15 @@ def create_schema(cursor):
             FOREIGN KEY (application_id) REFERENCES applications (id)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS stvps (
+            id TEXT PRIMARY KEY,
+            application_id TEXT NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            FOREIGN KEY (application_id) REFERENCES applications (id)
+        )
+    ''')
 
 # Recreate the schema
 cursor.execute("DROP TABLE IF EXISTS applications")
@@ -76,6 +85,16 @@ for app_index in range(1, application_count + 1):
     applications_data[-1] = (*applications_data[-1][:-1], doe)  # Update in-memory
     cursor.execute("UPDATE applications SET doe = ? WHERE id = ?", (doe, application_id))
 
+    # Generate STVPs for expired passes
+    stvps_data = []
+    current_date = datetime.now().date()
+    for app_id, _, _, _, _, _, _, doe in applications_data:
+        if datetime.strptime(doe, '%Y-%m-%d').date() < current_date:
+            stvp_id = f"STVP{app_id[1:]}"
+            start_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=1)).isoformat()
+            end_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=30)).isoformat()
+            stvps_data.append((stvp_id, app_id, start_date, end_date))
+
 # Insert applications
 cursor.executemany('''
     INSERT INTO applications (id, fin, name, pass_type, doa, company_uen, status, doe)
@@ -88,8 +107,15 @@ cursor.executemany('''
     VALUES (?, ?, ?, ?, ?)
 ''', amendments_data)
 
+# Insert STVPs
+cursor.executemany('''
+    INSERT INTO stvps (id, application_id, start_date, end_date)
+    VALUES (?, ?, ?, ?)
+''', stvps_data)
+
 # Commit and close
 connection.commit()
 connection.close()
 
 print(f"{len(applications_data)} applications and {len(amendments_data)} amendments added.")
+print(f"{len(stvps_data)} STVPs added.")

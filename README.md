@@ -17,7 +17,7 @@ This project implements a Flask-based API for managing work pass extensions and 
 
 1. Clone the repository.
 2. Install the required dependencies:
-    pip install 
+    pip install -r requirements.txt
 - Flask
 - Flask-SQLAlchemy
 - Flask-Swagger-UI

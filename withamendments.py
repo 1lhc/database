@@ -91,8 +91,8 @@ for app_index in range(1, application_count + 1):
     for app_id, _, _, _, _, _, _, doe in applications_data:
         if datetime.strptime(doe, '%Y-%m-%d').date() < current_date:
             stvp_id = f"STVP{app_id[1:]}"
-            start_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=1)).isoformat()
-            end_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=30)).isoformat()
+            start_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+            end_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=30)).strftime('%Y-%m-%d')
             stvps_data.append((stvp_id, app_id, start_date, end_date))
 
 # Insert applications

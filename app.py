@@ -3,6 +3,8 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from models import db
 from config import Config
 import logging
+from routes import api
+
 
 def create_app():
     app = Flask(__name__)
@@ -28,9 +30,8 @@ def create_app():
     swaggerui_blueprint = get_swaggerui_blueprint(SWAGGER_URL, API_URL, config={'app_name': "Work Pass Extension API"})
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
-    # Import and register other routes
-    from routes import search_applications
-    app.register_blueprint(search_applications)
+    # Register API routes
+    app.register_blueprint(api, url_prefix='/api')
 
     return app
 

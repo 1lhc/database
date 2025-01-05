@@ -1,3 +1,6 @@
+# utils.py
+# The require_api_key decorator is used to protect API routes that require an API key for access.
+
 from functools import wraps
 from flask import request, jsonify
 from config import Config

@@ -1,3 +1,5 @@
+# Description: This file contains the configuration for the application. 
+# It sets the database URI, API key, and the number of items per page.
 import os
 
 class Config:

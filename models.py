@@ -1,3 +1,6 @@
+# Description: This file contains the models for the database tables. 
+# The database is created using SQLAlchemy and the models are defined using the SQLAlchemy ORM.
+
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 

@@ -1,3 +1,5 @@
+# Description: This file contains the API routes for the application.
+
 from flask import Blueprint, jsonify, request
 from models import Application, Amendment, STVP, db
 from utils import require_api_key

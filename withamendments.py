@@ -1,3 +1,5 @@
+# Description: This script generates a SQLite database with applications, amendments, and STVPs.
+
 import sqlite3
 from faker import Faker
 from datetime import datetime, timedelta

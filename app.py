@@ -1,3 +1,7 @@
+# app.py is the main entry point for the application. 
+# It creates the Flask app, initializes the database, and registers the API routes. 
+# It also configures logging and sets up the Swagger UI.
+
 from flask import Flask, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
 from models import db

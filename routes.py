@@ -99,33 +99,46 @@ def create_stvp(application_id):
 
     existing_stvp = STVP.query.filter_by(application_id=application_id).order_by(STVP.end_date.desc()).first()
 
-    if existing_stvp and existing_stvp.end_date >= current_date:
-        # Extend existing STVP
+    if existing_stvp:
+        # Update existing STVP
         old_end_date = existing_stvp.end_date
-        existing_stvp.end_date = old_end_date + timedelta(days=30)
+        new_end_date = old_end_date + timedelta(days=30)
+        existing_stvp.end_date = new_end_date
+
+        # Log the amendment
+        amendment_id = generate_amendment_id(application_id)
+        amendment = Amendment(
+            amendment_id=amendment_id,
+            application_id=application_id,
+            original_value=old_end_date.isoformat(),
+            amended_value=new_end_date.isoformat()
+        )
+        db.session.add(amendment)
         db.session.commit()
+
         return jsonify({
             "message": "Existing STVP extended",
-            "new_end_date": existing_stvp.end_date.isoformat()
+            "new_end_date": new_end_date.isoformat(),
+            "amendment_id": amendment_id
         }), 200
+    else:
+        # Create new STVP
+        start_date = max(application.doe, current_date)
+        end_date = start_date + timedelta(days=30)
+        new_stvp = STVP(
+            id=str(uuid.uuid4()),
+            application_id=application_id,
+            start_date=start_date,
+            end_date=end_date
+        )
+        db.session.add(new_stvp)
+        db.session.commit()
 
-    # Create new STVP
-    start_date = max(application.doe, current_date)
-    end_date = start_date + timedelta(days=30)
-    new_stvp = STVP(
-        id=str(uuid.uuid4()),  # Generate a unique ID for the STVP
-        application_id=application_id,
-        start_date=start_date,
-        end_date=end_date
-    )
-    db.session.add(new_stvp)
-    db.session.commit()
-
-    return jsonify({
-        "message": "New STVP created",
-        "start_date": start_date.isoformat(),
-        "end_date": end_date.isoformat()
-    }), 201
+        return jsonify({
+            "message": "New STVP created",
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat()
+        }), 201
 
 @api.route('/applications', methods=['GET'])
 @require_api_key

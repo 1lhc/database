@@ -118,6 +118,7 @@ def create_stvp(application_id):
 
         return jsonify({
             "message": "Existing STVP extended",
+            "stvp_id": existing_stvp.id,
             "new_end_date": new_end_date.isoformat(),
             "amendment_id": amendment_id
         }), 200
@@ -125,8 +126,12 @@ def create_stvp(application_id):
         # Create new STVP
         start_date = max(application.doe, current_date)
         end_date = start_date + timedelta(days=30)
+        
+        # Generate STVP ID based on application ID
+        stvp_id = f"STVP{application_id[1:]}"  # Assuming application_id is in the format 'A0001'
+        
         new_stvp = STVP(
-            id=str(uuid.uuid4()),
+            id=stvp_id,
             application_id=application_id,
             start_date=start_date,
             end_date=end_date
@@ -136,6 +141,7 @@ def create_stvp(application_id):
 
         return jsonify({
             "message": "New STVP created",
+            "stvp_id": stvp_id,
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat()
         }), 201

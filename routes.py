@@ -1,13 +1,14 @@
 # Description: This file contains the API routes for the application.
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from models import Application, Amendment, STVP, db
 from utils import require_api_key
+from validation import validate_fin, validate_date  # New import
 import logging
 from datetime import datetime, date, timedelta
 from sqlalchemy import desc, func
 from config import Config
-import uuid
+from sqlalchemy.orm import Session
 
 api = Blueprint('api', __name__)
 
@@ -22,74 +23,117 @@ def generate_amendment_id(application_id):
 @require_api_key
 def search_applications():
     fin = request.args.get('fin')
+    
+    # Enhanced validation
     if not fin:
         logging.warning("FIN parameter is missing")
         return jsonify({"error": "FIN parameter is required"}), 400
+    
+    if not validate_fin(fin):
+        logging.warning(f"Invalid FIN format: {fin}")
+        return jsonify({"error": "Invalid FIN format. Must be 9 characters starting with a letter"}), 400
 
     try:
         logging.info(f"Searching for applications with FIN: {fin}")
-        applications = Application.query.filter_by(fin=fin).all()
+        
+        # Database query with explicit error handling
+        try:
+            applications = Application.query.filter_by(fin=fin).all()
+        except Exception as db_error:
+            logging.error(f"Database query failed: {str(db_error)}")
+            return jsonify({"error": "Database operation failed"}), 500
+
         logging.info(f"Found {len(applications)} applications")
 
         if not applications:
             logging.info(f"No applications found for FIN: {fin}")
             return jsonify({"message": "No applications found for the given FIN"}), 404
 
-        result = [{
-            "id": app.id,
-            "name": app.name,
-            "pass_type": app.pass_type,
-            "doa": app.doa.isoformat(),
-            "doe": app.doe.isoformat(),
-            "status": app.status,
-            "company_uen": app.company_uen
-        } for app in applications]
+        # Serialization with error handling
+        try:
+            result = [{
+                "id": app.id,
+                "name": app.name,
+                "pass_type": app.pass_type,
+                "doa": app.doa.isoformat(),
+                "doe": app.doe.isoformat(),
+                "status": app.status,
+                "company_uen": app.company_uen
+            } for app in applications]
+        except Exception as serialization_error:
+            logging.error(f"Data serialization failed: {str(serialization_error)}")
+            return jsonify({"error": "Failed to process application data"}), 500
 
         logging.info(f"Returning {len(result)} applications")
         return jsonify(result)
+
     except Exception as e:
-        logging.error(f"An error occurred while searching for applications: {str(e)}")
-        return jsonify({"error": "An error occurred while searching for applications"}), 500
+        logging.error(f"Unexpected error in search: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
 
 @api.route('/applications/<string:application_id>/update-expiry', methods=['PUT'])
 @require_api_key
 def update_expiry(application_id):
+    session = Session(db.engine)
+    application = session.get(Application, application_id)
+    if not application:
+        return jsonify({"error": "Application not found"}), 404
+    # Check for JSON content
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+    
     new_doe = request.json.get('new_doe')
     if not new_doe:
-        return jsonify({"error": "New date of expiry (new_doe) is required"}), 400
+        return jsonify({"error": "Missing required field: new_doe"}), 400
+    
+    # Date validation
+    if not validate_date(new_doe):
+        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
 
     try:
         new_doe = datetime.strptime(new_doe, '%Y-%m-%d').date()
     except ValueError:
-        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+        return jsonify({"error": "Invalid date value"}), 400
 
-    application = Application.query.get(application_id)
-    if not application:
-        return jsonify({"error": "Application not found"}), 404
+    try:
+        session = Session(db.engine)
+        application = session.get(Application, application_id)
+        if not application:
+            return jsonify({"error": "Application not found"}), 404
 
-    if application.doe < datetime.now().date():
-        return jsonify({"error": "Cannot update expired application"}), 400
+        if application.doe < datetime.now().date():
+            return jsonify({"error": "Cannot update expired application"}), 400
 
-    old_doe = application.doe
-    application.doe = new_doe
+        old_doe = application.doe
+        application.doe = new_doe
 
-    amendment_id = generate_amendment_id(application_id)
-    amendment = Amendment(
-        amendment_id=amendment_id,
-        application_id=application_id,
-        original_value=old_doe.isoformat(),
-        amended_value=new_doe.isoformat()
-    )
+        amendment_id = generate_amendment_id(application_id)
+        amendment = Amendment(
+            amendment_id=amendment_id,
+            application_id=application_id,
+            original_value=old_doe.isoformat(),
+            amended_value=new_doe.isoformat()
+        )
 
-    db.session.add(amendment)
-    db.session.commit()
+        db.session.add(amendment)
+        db.session.commit()
 
-    return jsonify({"message": "Expiry date updated successfully", "amendment_id": amendment_id}), 200
+        return jsonify({
+            "message": "Expiry date updated successfully",
+            "amendment_id": amendment_id,
+            "new_expiry": new_doe.isoformat()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Update expiry failed: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to update expiry date"}), 500
 
 @api.route('/applications/<string:application_id>/create-stvp', methods=['POST'])
 @require_api_key
 def create_stvp(application_id):
-    application = Application.query.get(application_id)
+    session = Session(db.engine)
+    application = session.get(Application, application_id)
     if not application:
         return jsonify({"error": "Application not found"}), 404
 
@@ -189,3 +233,17 @@ def get_amendment_history(application_id):
     } for amendment in amendments]
 
     return jsonify(result)
+
+# New endpoint for concurrency testing
+@api.route('/test-concurrency', methods=['GET'])
+def test_concurrency():
+    def background_task():
+        import time
+        time.sleep(5)
+        return "Done"
+        
+    future = current_app.executor.submit(background_task)
+    return jsonify({
+        "message": "Background task started",
+        "task_id": str(future)
+    }), 202

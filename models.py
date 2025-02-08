@@ -2,7 +2,7 @@
 # The database is created using SQLAlchemy and the models are defined using the SQLAlchemy ORM.
 
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timezone
 
 db = SQLAlchemy()
 
@@ -23,7 +23,7 @@ class Amendment(db.Model):
     __tablename__ = 'amendments'
     amendment_id = db.Column(db.String, primary_key=True)
     application_id = db.Column(db.String, db.ForeignKey('applications.id'), nullable=False)
-    amendment_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    amendment_date = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     original_value = db.Column(db.String, nullable=False)
     amended_value = db.Column(db.String, nullable=False)
 

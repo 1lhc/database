@@ -2,7 +2,6 @@ import pytest
 from app import create_app
 from models import Application, db
 from datetime import datetime, date, timedelta
-import uuid
 
 @pytest.fixture
 def client():
@@ -72,3 +71,9 @@ def test_invalid_date_update(client):
                          headers={'X-API-Key': 'default_key'})
     assert response.status_code == 400
     assert "Invalid date format" in response.json['error']
+
+# New test case for the root route
+def test_root_route(client):
+    response = client.get('/')
+    assert response.status_code == 200
+    assert response.json == {"message": "Welcome to the Work Pass Extension API"}

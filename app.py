@@ -8,12 +8,13 @@ from models import db
 from config import Config
 import logging
 from routes import api
-
+from concurrent.futures import ThreadPoolExecutor
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-
+    app.executor = ThreadPoolExecutor(max_workers=4)
+    
     db.init_app(app)
 
     # Configure logging

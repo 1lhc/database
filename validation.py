@@ -23,4 +23,6 @@ def validate_date(date_str):
         return True
     except ValueError:
         return False
-    
+
+def sanitize_input(input_str):
+    return input_str.strip().replace("'", "").replace(";", "")

@@ -77,3 +77,24 @@ def test_root_route(client):
     response = client.get('/')
     assert response.status_code == 200
     assert response.json == {"message": "Welcome to the Work Pass Extension API"}
+
+def test_create_stvp(client):
+    # Create expired application first
+    with client.application.app_context():
+        expired_app = Application(
+            id="EXPIRED123",
+            fin="S7654321X",
+            name="Expired User",
+            pass_type="EP",
+            doa=date.today() - timedelta(days=400),
+            doe=date.today() - timedelta(days=1),
+            company_uen="987654321A",
+            status="EXPIRED"
+        )
+        db.session.add(expired_app)
+        db.session.commit()
+
+    response = client.post('/api/applications/EXPIRED123/create-stvp',
+                          headers={'X-API-Key': 'default_key'})
+    assert response.status_code == 201
+    assert 'stvp_id' in response.json

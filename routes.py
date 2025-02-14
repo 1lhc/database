@@ -9,6 +9,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import desc, func
 from config import Config
 from sqlalchemy.orm import Session
+import time
 
 api = Blueprint('api', __name__)
 
@@ -234,14 +235,21 @@ def get_amendment_history(application_id):
 
     return jsonify(result)
 
+from flask import copy_current_request_context
 # New endpoint for concurrency testing
 @api.route('/test-concurrency', methods=['GET'])
 def test_concurrency():
+    @copy_current_request_context
     def background_task():
-        import time
-        time.sleep(5)
-        return "Done"
-        
+        start = datetime.now()
+        logging.info("Started background task")
+        try:
+            time.sleep(5)  # Simulate a long-running task
+            logging.info(f"Task completed in {(datetime.now() - start).total_seconds()}s")
+        except Exception as e:
+            logging.error(f"Background task failed: {str(e)}")
+
+    # Submit the task to the executor
     future = current_app.executor.submit(background_task)
     return jsonify({
         "message": "Background task started",

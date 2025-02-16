@@ -3,29 +3,28 @@
 from flask import Blueprint, jsonify, request, current_app
 from models import Application, Amendment, STVP, db
 from utils import require_api_key
-from validation import validate_fin, validate_date  # New import
+from validation import validate_fin, validate_date
 import logging
 from datetime import datetime, date, timedelta
 from sqlalchemy import desc, func
 from config import Config
 from sqlalchemy.orm import Session
 import time
+from extensions import cache  # Import the shared cache
 
 api = Blueprint('api', __name__)
 
 def generate_amendment_id(application_id):
-    # Get the count of existing amendments for this application
     count = Amendment.query.filter_by(application_id=application_id).count()
-    # Increment the count and format the amendment ID
     return f'P{(count + 1):02d}{application_id}'
 
-
 @api.route('/applications/search', methods=['GET'])
+@cache.cached(query_string=True)  # Use the cache object
 @require_api_key
 def search_applications():
+    print("Cache object in routes.py (inside route):", cache)
     fin = request.args.get('fin')
     
-    # Enhanced validation
     if not fin:
         logging.warning("FIN parameter is missing")
         return jsonify({"error": "FIN parameter is required"}), 400
@@ -36,34 +35,22 @@ def search_applications():
 
     try:
         logging.info(f"Searching for applications with FIN: {fin}")
-        
-        # Database query with explicit error handling
-        try:
-            applications = Application.query.filter_by(fin=fin).all()
-        except Exception as db_error:
-            logging.error(f"Database query failed: {str(db_error)}")
-            return jsonify({"error": "Database operation failed"}), 500
-
+        applications = Application.query.filter_by(fin=fin).all()
         logging.info(f"Found {len(applications)} applications")
 
         if not applications:
             logging.info(f"No applications found for FIN: {fin}")
             return jsonify({"message": "No applications found for the given FIN"}), 404
 
-        # Serialization with error handling
-        try:
-            result = [{
-                "id": app.id,
-                "name": app.name,
-                "pass_type": app.pass_type,
-                "doa": app.doa.isoformat(),
-                "doe": app.doe.isoformat(),
-                "status": app.status,
-                "company_uen": app.company_uen
-            } for app in applications]
-        except Exception as serialization_error:
-            logging.error(f"Data serialization failed: {str(serialization_error)}")
-            return jsonify({"error": "Failed to process application data"}), 500
+        result = [{
+            "id": app.id,
+            "name": app.name,
+            "pass_type": app.pass_type,
+            "doa": app.doa.isoformat(),
+            "doe": app.doe.isoformat(),
+            "status": app.status,
+            "company_uen": app.company_uen
+        } for app in applications]
 
         logging.info(f"Returning {len(result)} applications")
         return jsonify(result)

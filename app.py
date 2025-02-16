@@ -7,14 +7,21 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from models import db
 from config import Config
 import logging
-from routes import api
+
 from concurrent.futures import ThreadPoolExecutor
+from extensions import cache  # Import from extensions
+from routes import api  # Import the blueprint
 
 def create_app():
     app = Flask(__name__)
+
+    # Configure cache
+    app.config['CACHE_TYPE'] = 'SimpleCache'
+    app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+    cache.init_app(app)  # Initialize cache with the app
+
     app.config.from_object(Config)
     app.executor = ThreadPoolExecutor(max_workers=4)
-    
     db.init_app(app)
 
     # Configure logging
@@ -37,7 +44,7 @@ def create_app():
 
     # Register API routes
     app.register_blueprint(api, url_prefix='/api')
-
+    
     return app
 
 app = create_app()

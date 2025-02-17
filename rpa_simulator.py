@@ -42,11 +42,13 @@ def rpa_process():
 # Run the RPA simulation 10 times
 success_count = 0
 total_time = 0
+
 for i in range(10):
     print(f"\nRPA Test {i+1}:")
+    start_time = time.time()  # Define start_time here for each iteration
     if rpa_process():
         success_count += 1
-    total_time += time.time() - start_time
+    total_time += time.time() - start_time  # Use the local start_time
 
 print(f"\nRPA Summary:")
 print(f"- Success Rate: {success_count}/10")

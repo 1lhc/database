@@ -87,18 +87,6 @@ for app_index in range(1, application_count + 1):
     applications_data[-1] = (*applications_data[-1][:-1], doe)  # Update in-memory
     cursor.execute("UPDATE applications SET doe = ? WHERE id = ?", (doe, application_id))
 
-    # Add to data generation loop
-    applications_data.append((
-        "TEST123",                  # ID
-        "S1234567X",                # FIN (the test value)
-        "Test User",                # Name
-        "EP",                       # Pass type
-        "2024-01-01",               # Date of Application
-        "UEN123456X",               # Company UEN
-        "ACTIVE",                   # Status
-        "2025-12-31"                # Date of Expiry
-    ))
-
     # Generate STVPs for expired passes
     stvps_data = []
     current_date = datetime.now().date()
@@ -108,6 +96,23 @@ for app_index in range(1, application_count + 1):
             start_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
             end_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=30)).strftime('%Y-%m-%d')
             stvps_data.append((stvp_id, app_id, start_date, end_date))
+
+# Add the test application once, outside the loop
+applications_data.append((
+    "TEST123",                  # ID
+    "S1234567X",                # FIN (the test value)
+    "Test User",                # Name
+    "Employment Pass",          # Pass type
+    "2024-01-01",               # Date of Application
+    "UEN12345",                 # Company UEN
+    "Pending",                  # Status
+    "2025-12-31"                # Date of Expiry
+))
+
+# Ensure all IDs are unique
+ids = [app[0] for app in applications_data]
+if len(ids) != len(set(ids)):
+    raise ValueError("Duplicate IDs found in applications_data")
 
 # Insert applications
 cursor.executemany('''

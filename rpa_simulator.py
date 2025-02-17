@@ -12,13 +12,15 @@ def rpa_search_application(fin):
     return {"id": "A001", "fin": fin, "status": "ACTIVE"}
 
 def rpa_create_stvp(application_id):
-    """Simulates creating an STVP in the old RPA system."""
-    print(f"RPA: Creating STVP for application {application_id}...")
-    time.sleep(3)  # Simulate form filling and submission delay
-    if random.random() < 0.1:  # 10% chance of failure
-        print("RPA: Error - STVP creation failed!")
+    """Simulates both STVP creation and extension"""
+    print(f"RPA: Processing STVP for {application_id}...")
+    time.sleep(3)
+    if random.random() < 0.1:
+        print("RPA: STVP operation failed!")
         return None
-    print("RPA: STVP created successfully.")
+    # Simulate random creation/extension
+    action = "created" if random.random() < 0.5 else "extended"
+    print(f"RPA: STVP {action} successfully")
     return {"stvp_id": f"STVP{application_id[1:]}"}
 
 def rpa_process():

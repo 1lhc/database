@@ -21,10 +21,12 @@ def test_backend_create_stvp(application_id):
         f"http://localhost:5000/api/applications/{application_id}/create-stvp",
         headers={"X-API-Key": "default_key"}
     )
-    if response.status_code != 201:
-        print(f"Backend: STVP creation failed - {response.json()}")
-        return None
-    print("Backend: STVP created successfully.")
+    # Handle both creation (201) and extension (200)
+    if response.status_code not in [200, 201]:
+        print(f"Backend: STVP failed - {response.json()}")
+        return None, 0
+    
+    print("Backend: STVP operation succeeded")
     return response.json(), time.time() - start_time
 
 def test_backend():

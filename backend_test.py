@@ -1,5 +1,6 @@
 import requests
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 def test_backend_search(fin):
     """Tests the search endpoint of the backend API."""

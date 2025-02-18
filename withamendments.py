@@ -56,20 +56,6 @@ application_count = 20  # Testing dataset
 applications_data = []
 amendments_data = []
 
-# Add the test application first
-applications_data = [
-    (
-        "A0001",                    # ID
-        "S1234567X",                # FIN (the test value)
-        "Test User",                # Name
-        "Employment Pass",          # Pass type
-        (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'),  # DOA (30 days ago)
-        "UEN12345",                 # Company UEN
-        "Pending",                  # Status
-        (datetime.now() + timedelta(days=10)).strftime('%Y-%m-%d')  # DOE (not expired)
-    )
-]
-
 # Generate applications and amendments
 for app_index in range(2, application_count + 1):
     # Generate application details
@@ -110,6 +96,18 @@ for app_index in range(2, application_count + 1):
             start_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
             end_date = (datetime.strptime(doe, '%Y-%m-%d') + timedelta(days=30)).strftime('%Y-%m-%d')
             stvps_data.append((stvp_id, app_id, start_date, end_date))
+
+# Add the test application last
+applications_data.append((
+        "A0001",                    # ID
+        "S1234567X",                # FIN (the test value)
+        "Test User",                # Name
+        "Employment Pass",          # Pass type
+        (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'),  # DOA (30 days ago)
+        "UEN12345",                 # Company UEN
+        "Pending",                  # Status
+        (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d')  # DOE (expired)
+    ))
 
 # Ensure all IDs are unique
 ids = [app[0] for app in applications_data]

@@ -17,11 +17,11 @@ def create_app():
 
     # Configure cache
     app.config['CACHE_TYPE'] = 'SimpleCache'
-    app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+    app.config['CACHE_DEFAULT_TIMEOUT'] = 3600
     cache.init_app(app)  # Initialize cache with the app
 
     app.config.from_object(Config)
-    app.executor = ThreadPoolExecutor(max_workers=4)
+    app.executor = ThreadPoolExecutor(max_workers=15)
     db.init_app(app)
 
     # Configure logging

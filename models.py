@@ -9,13 +9,13 @@ db = SQLAlchemy()
 class Application(db.Model):
     __tablename__ = 'applications'
     id = db.Column(db.String, primary_key=True)
-    fin = db.Column(db.String, nullable=False)
+    fin = db.Column(db.String, nullable=False, index=True)  # Add index=True here
     name = db.Column(db.String, nullable=False)
     pass_type = db.Column(db.String, nullable=False)
     doa = db.Column(db.Date, nullable=False)
     company_uen = db.Column(db.String, nullable=False)
     status = db.Column(db.String, nullable=False)
-    doe = db.Column(db.Date, nullable=False)
+    doe = db.Column(db.Date, nullable=False, index=True)  # Add index=True here
     amendments = db.relationship('Amendment', backref='application', lazy=True)
 
 

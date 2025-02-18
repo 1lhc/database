@@ -48,16 +48,39 @@ def test_backend():
     print(f"Backend: Total process time: {total_time:.2f} seconds")
     return True, total_time
 
-# Run the backend test 10 times
-success_count = 0
-total_time = 0
-for i in range(10):
-    print(f"\nBackend Test {i+1}:")
-    success, time_taken = test_backend()
-    if success:
-        success_count += 1
-    total_time += time_taken
+def load_test():
+    """Runs a load test by executing the test_backend function concurrently."""
+    start_time = time.time()  # Start timer for the load test
 
-print(f"\nBackend Summary:")
-print(f"- Success Rate: {success_count}/10")
-print(f"- Average Time: {total_time/10:.2f}s")
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = [executor.submit(test_backend) for _ in range(100)]
+        results = [f.result() for f in futures]
+
+    elapsed_time = time.time() - start_time  # End timer for the load test
+    
+    success_count = sum(1 for success, _ in results if success)
+    total_time = sum(time for _, time in results)
+    print(f"Processed 100 cases with 20 concurrent users")
+    print(f"- Success Rate: {success_count}/100")
+    print(f"- Total Time Reported by Threads: {total_time:.2f}s")
+    print(f"- Avg Reported Time/Case: {total_time/100:.2f}s")
+    print(f"- Actual Elapsed Time: {elapsed_time:.2f}s")
+    print(f"- Average Actual Elapsed Time: {elapsed_time/100:.2f}s")
+
+if __name__ == "__main__":
+    # # Run the backend test sequentially 10 times
+    # success_count = 0
+    # total_time = 0
+    # for i in range(10):
+    #     print(f"\nBackend Test {i+1}:")
+    #     success, time_taken = test_backend()
+    #     if success:
+    #         success_count += 1
+    #     total_time += time_taken
+    # print(f"\nBackend Summary:")
+    # print(f"- Success Rate: {success_count}/10")
+    # print(f"- Average Time: {total_time/10:.2f}s")
+
+    # Run the load test
+    print("\nRunning Load Test...")
+    load_test()

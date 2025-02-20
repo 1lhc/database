@@ -120,63 +120,73 @@ def update_expiry(application_id):
 @api.route('/applications/<string:application_id>/create-stvp', methods=['POST'])
 @require_api_key
 def create_stvp(application_id):
-    session = Session(db.engine)
-    application = session.get(Application, application_id)
-    if not application:
-        return jsonify({"error": "Application not found"}), 404
+    try:
+        # Start a transaction
+        application = Application.query.get(application_id)
+        if not application:
+            return jsonify({"error": "Application not found"}), 404
 
-    current_date = date.today()
-    if application.doe >= current_date:
-        return jsonify({"error": "Cannot create STVP for non-expired pass"}), 400
+        current_date = date.today()
+        if application.doe >= current_date:
+            return jsonify({"error": "Cannot create STVP for non-expired pass"}), 400
 
-    existing_stvp = STVP.query.filter_by(application_id=application_id).order_by(STVP.end_date.desc()).first()
+        existing_stvp = STVP.query.filter_by(application_id=application_id).order_by(STVP.end_date.desc()).first()
+        if existing_stvp:
+            # Update existing STVP
+            old_end_date = existing_stvp.end_date
+            new_end_date = old_end_date + timedelta(days=30)
+            existing_stvp.end_date = new_end_date
 
-    if existing_stvp:
-        # Update existing STVP
-        old_end_date = existing_stvp.end_date
-        new_end_date = old_end_date + timedelta(days=30)
-        existing_stvp.end_date = new_end_date
+            # Log the amendment
+            amendment_id = generate_amendment_id(application_id)
+            amendment = Amendment(
+                amendment_id=amendment_id,
+                application_id=application_id,
+                original_value=old_end_date.isoformat(),
+                amended_value=new_end_date.isoformat()
+            )
+            db.session.add(amendment)
 
-        # Log the amendment
-        amendment_id = generate_amendment_id(application_id)
-        amendment = Amendment(
-            amendment_id=amendment_id,
-            application_id=application_id,
-            original_value=old_end_date.isoformat(),
-            amended_value=new_end_date.isoformat()
-        )
-        db.session.add(amendment)
-        db.session.commit()
+            # Commit the transaction
+            db.session.commit()
 
-        return jsonify({
-            "message": "Existing STVP extended",
-            "stvp_id": existing_stvp.id,
-            "new_end_date": new_end_date.isoformat(),
-            "amendment_id": amendment_id
-        }), 200
-    else:
-        # Create new STVP
-        start_date = max(application.doe, current_date)
-        end_date = start_date + timedelta(days=30)
-        
-        # Generate STVP ID based on application ID
-        stvp_id = f"STVP{application_id[1:]}"  # Assuming application_id is in the format 'A0001'
-        
-        new_stvp = STVP(
-            id=stvp_id,
-            application_id=application_id,
-            start_date=start_date,
-            end_date=end_date
-        )
-        db.session.add(new_stvp)
-        db.session.commit()
+            return jsonify({
+                "message": "Existing STVP extended",
+                "stvp_id": existing_stvp.id,
+                "new_end_date": new_end_date.isoformat(),
+                "amendment_id": amendment_id
+            }), 200
+        else:
+            # Create new STVP
+            start_date = max(application.doe, current_date)
+            end_date = start_date + timedelta(days=30)
 
-        return jsonify({
-            "message": "New STVP created",
-            "stvp_id": stvp_id,
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat()
-        }), 201
+            # Generate STVP ID based on application ID
+            stvp_id = f"STVP{application_id[1:]}"  # Assuming application_id is in the format 'A0001'
+
+            new_stvp = STVP(
+                id=stvp_id,
+                application_id=application_id,
+                start_date=start_date,
+                end_date=end_date
+            )
+            db.session.add(new_stvp)
+
+            # Commit the transaction
+            db.session.commit()
+
+            return jsonify({
+                "message": "New STVP created",
+                "stvp_id": stvp_id,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat()
+            }), 201
+
+    except Exception as e:
+        # Rollback the transaction in case of an error
+        db.session.rollback()
+        logging.error(f"Create STVP failed: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to create or extend STVP"}), 500
 
 @api.route('/applications', methods=['GET'])
 @require_api_key

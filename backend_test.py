@@ -1,7 +1,9 @@
 import requests
 import time
 from concurrent.futures import ThreadPoolExecutor
+from locust import HttpUser, task, between
 
+# Existing functions for sequential and thread-based load testing
 def test_backend_search(fin):
     """Tests the search endpoint of the backend API."""
     start_time = time.time()
@@ -66,6 +68,58 @@ def load_test():
     print(f"- Avg Reported Time/Case: {total_time/100:.2f}s")
     print(f"- Actual Elapsed Time: {elapsed_time:.2f}s")
     print(f"- Average Actual Elapsed Time: {elapsed_time/100:.2f}s")
+
+# # Locust Integration
+# class WorkPassUser(HttpUser):
+#     wait_time = between(0, 0)  # Simulate users waiting between 1 and 5 seconds between tasks
+
+#     @task
+#     def full_backend_workflow(self):
+#         """
+#         Simulates the full backend workflow:
+#         1. Search for an application.
+#         2. Create an STVP for the found application.
+#         """
+#         # Step 1: Search for an application
+#         search_response = self.client.get(
+#             "/api/applications/search?fin=S1234567X",
+#             headers={"X-API-Key": "default_key"},
+#             name="Search Application"
+#         )
+
+#         if search_response.status_code != 200:
+#             # Log failure and stop this task
+#             print(f"Search failed: {search_response.text}")
+#             return
+
+#         # Parse the search result to extract the application ID
+#         search_data = search_response.json()
+#         if not search_data:
+#             print("No application found for FIN S1234567X")
+#             return
+
+#         application_id = search_data[0]["id"]
+
+#         # Step 2: Create an STVP for the application
+#         stvp_response = self.client.post(
+#             f"/api/applications/{application_id}/create-stvp",
+#             headers={"X-API-Key": "default_key"},
+#             name="Create STVP"
+#         )
+
+#         if stvp_response.status_code not in [200, 201]:
+#             # Log failure
+#             print(f"STVP creation failed: {stvp_response.text}")
+#             return
+
+#         # Log success
+#         print("Full backend workflow completed successfully.")
+
+# if __name__ == "__main__":
+#     # Run the Locust test
+#     print("\nRunning Locust Load Test...")
+#     print("To run Locust, execute the following command in your terminal:")
+#     print("locust -f backend_test.py --host=http://localhost:5000")
 
 if __name__ == "__main__":
     # # Run the backend test sequentially 10 times

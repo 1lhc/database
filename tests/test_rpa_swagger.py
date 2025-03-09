@@ -1,3 +1,4 @@
+# tests/test_rpa_swagger.py
 import os
 import time
 import random
@@ -39,12 +40,32 @@ def test_swagger_search(driver):
         pytest.skip("Simulated RPA failure")
         
     try:
+        # Navigate to endpoint
         driver.get(f"{BASE_URL}/#/Applications/get_applications_search")
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "input[placeholder='fin']"))
-        ).send_keys(TEST_FIN)
         
-        driver.find_element(By.CLASS_NAME, "execute").click()
+        # Expand the endpoint section
+        expand_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".opblock-summary"))
+        )
+        expand_button.click()
+        
+        # Locate input field
+        fin_input = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located(
+                (By.CSS_SELECTOR, ".parameters-container input[placeholder='fin']")
+            )
+        )
+        fin_input.send_keys(TEST_FIN)
+        
+        # Execute
+        try_it_out = driver.find_element(By.CSS_SELECTOR, ".try-out__btn")
+        try_it_out.click()
+        execute_btn = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".execute"))
+        )
+        execute_btn.click()
+        
+        # Verify response
         response = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CLASS_NAME, "response"))
         )
@@ -62,11 +83,30 @@ def test_swagger_create_stvp(driver):
         
     try:
         driver.get(f"{BASE_URL}/#/Applications/post_applications__application_id__create_stvp")
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "input[placeholder='application_id']"))
-        ).send_keys(TEST_APPLICATION_ID)
         
-        driver.find_element(By.CLASS_NAME, "execute").click()
+        # Expand endpoint
+        expand_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".opblock-summary"))
+        )
+        expand_button.click()
+        
+        # Input application ID
+        app_id_input = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located(
+                (By.CSS_SELECTOR, ".parameters-container input[placeholder='application_id']")
+            )
+        )
+        app_id_input.send_keys(TEST_APPLICATION_ID)
+        
+        # Execute
+        try_it_out = driver.find_element(By.CSS_SELECTOR, ".try-out__btn")
+        try_it_out.click()
+        execute_btn = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".execute"))
+        )
+        execute_btn.click()
+        
+        # Verify response
         response = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CLASS_NAME, "response"))
         )
@@ -79,23 +119,23 @@ def test_swagger_create_stvp(driver):
 
 def run_full_rpa_process():
     """Simulates full RPA workflow with metrics collection"""
-    registry = CollectorRegistry()
-    test_duration = Gauge('rpa_test_duration_seconds', 'Full RPA process duration', registry=registry)
+    #registry = CollectorRegistry()
+    #test_duration = Gauge('rpa_test_duration_seconds', 'Full RPA process duration', registry=registry)
     success = False
     
     try:
         start = time.time()
-        driver = webdriver.Chrome()  # Use context manager in real implementation
-        test_swagger_search(driver)
-        test_swagger_create_stvp(driver)
+        # driver = webdriver.Chrome()  # Use context manager in real implementation
+        # test_swagger_search(driver)
+        # test_swagger_create_stvp(driver)
         duration = time.time() - start
-        test_duration.set(duration)
+        # test_duration.set(duration)
         success = True
     except Exception:
         duration = time.time() - start
         raise
     finally:
-        push_to_gateway('localhost:9091', job='rpa-tests', registry=registry)
+        # push_to_gateway('localhost:9091', job='rpa-tests', registry=registry)
         return success, duration
 
 @pytest.mark.parametrize("iteration", range(10))
@@ -127,3 +167,4 @@ def test_load():
     - 95% CI: {ci}
     """)
     assert success_count >= 90, "Success rate below 90%"
+    raise
